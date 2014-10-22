@@ -20,15 +20,36 @@ var players = [],
 
 
 app.get('/enroll', function (req, res) {
-    res.send('enroll');
+    players.push({
+        id : seq,
+        game : [null,null,null,null,null,null,null,null,null,null,null,null,null],
+        turn : 0
+    });
+    
+    res.json({
+        id : seq++
+    });
 });
 
 app.get('/players', function(req, res) {
-    res.send('players');
+    res.json(players);
 });
 
 app.post('/:user/roll', function(req, res) {
-    res.send('roll');
+    
+    var id = req.params.user,
+        eyes = req.body,
+        player = _.find(players, function (player) { return player.id == id; });
+    
+    if (player.turn < 3) {
+        _.map(eyes, function (eye) {
+            return _.extend(eye, { eye : eye.status === 'hold' ? eye.eye : Math.floor(Math.random() * 6) });
+        })
+
+        player.turn++;
+    }
+    
+    res.json(eyes);
 });
 
 app.post('/:user/decision', function(req, res) {
