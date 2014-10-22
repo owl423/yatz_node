@@ -13,10 +13,24 @@
     
     angular.module('YahtzeeApp').controller('MainCtrl', function ($scope, $q, $timeout, $interval, DiceSvc) {
         
-        var total = function (eyes) { return _.reduce(eyes, function (sum, eye) { return sum + eye; }, 0); },
-            upper = function (n, eyes) { return _.chain(eyes).filter(function (eye) { return eye == n; }).reduce(function (sum, eye) { return sum + eye; }, 0).value(); },
-            nkind = function (n, eyes) { return _.chain(eyes).countBy(function (eye) { return eye; }).find(function (count) { return count >= n; }).value(); },
-            akind = function (n, eyes) { return nkind(n, eyes) ? total(eyes) : 0; },
+        var total = function (eyes) {
+                return _.reduce(eyes, function (sum, eye) { return sum + eye; }, 0);
+            },
+            upper = function (n, eyes) {
+                return _.chain(eyes)
+                    .filter(function (eye) { return eye == n; })
+                    .reduce(function (sum, eye) { return sum + eye; }, 0)
+                    .value();
+            },
+            nkind = function (n, eyes) {
+                return _.chain(eyes)
+                    .countBy(function (eye) { return eye; })
+                    .find(function (count) { return count >= n; })
+                    .value();
+            },
+            akind = function (n, eyes) {
+                return nkind(n, eyes) ? total(eyes) : 0;
+            },
             contain = function (sets, score, eyes) {
                 return _.some(sets, function (set) {
                     return _.isEmpty(_.difference(set, eyes));
