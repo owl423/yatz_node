@@ -4,6 +4,7 @@ var favicon = require('static-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var _ = require('underscore');
 
 var app = express();
 
@@ -18,6 +19,56 @@ app.use(express.static(path.join(__dirname, 'views')));
 var players = [],
     seq = 0;
 
+        
+var total = function (eyes) {
+        return _.reduce(eyes, function (sum, eye) { return sum + eye; }, 0);
+    },
+    upper = function (n, eyes) {
+        return _.chain(eyes)
+            .filter(function (eye) { return eye == n; })
+            .reduce(function (sum, eye) { return sum + eye; }, 0)
+            .value();
+    },
+    nkind = function (n, eyes) {
+        return _.chain(eyes)
+            .countBy(function (eye) { return eye; })
+            .find(function (count) { return count >= n; })
+            .value();
+    },
+    akind = function (n, eyes) {
+        return nkind(n, eyes) ? total(eyes) : 0;
+    },
+    contain = function (sets, score, eyes) {
+        return _.some(sets, function (set) {
+            return _.isEmpty(_.difference(set, eyes));
+        }) ? score : 0;
+    };
+
+
+var rules = [
+    _.partial(upper, 1),
+    _.partial(upper, 2),
+    _.partial(upper, 3),
+    _.partial(upper, 4),
+    _.partial(upper, 5),
+    _.partial(upper, 6),
+    _.partial(akind, 3),
+    _.partial(akind, 4),
+    function (eyes) {
+        var counts = _.chain(eyes).countBy(function (eye) { return eye; });
+
+        if (counts.find(function (count) { return count == 2; }).value()
+            && counts.find(function (count) { return count == 3; }).value()) {
+            return 25;
+        }
+
+        return 0;
+    },
+    _.partial(contain, [[1,2,3,4], [2,3,4,5], [3,4,5,6]], 30),
+    _.partial(contain, [[1,2,3,4,5], [2,3,4,5,6]], 40),
+    function (eyes) { return nkind(5, eyes) ? 50 : 0; },
+    total
+];
 
 app.get('/enroll', function (req, res) {
     players.push({
@@ -53,7 +104,18 @@ app.post('/:user/roll', function(req, res) {
 });
 
 app.post('/:user/decision', function(req, res) {
-    res.send('decision');
+    
+    var id = req.params.user,
+        decision = req.body;
+        player = _.find(players, function (player) { return player.id == id; });
+    
+    player.game[decision.slot] = rules[decision.slot](_.map(decision.dices, function (dice) { return dice.eye + 1; }));
+    player.turn = 0;
+    
+    res.json({
+        slot : decision.slot,
+        point : player.game[decision.slot]
+    });
 });
 
 /// catch 404 and forward to error handler
